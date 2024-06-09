@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "hopper.sorting.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"ExampleMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
