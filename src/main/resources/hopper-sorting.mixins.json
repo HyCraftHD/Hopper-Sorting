@@ -3,7 +3,8 @@
 	"package": "hopper.sorting.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin"
+		"ExampleMixin",
+		"HopperTryMoveItemsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
