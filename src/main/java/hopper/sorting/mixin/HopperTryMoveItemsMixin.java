@@ -6,32 +6,25 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.Hopper;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 @Debug(export = true)
 @Mixin(HopperBlockEntity.class)
-public class HopperTryMoveItemsMixin {
+public class HopperTryMoveItemsMixin implements HopperTryMoveItemsMixinAccessor {
 
     @Unique
     private static final String MOD_ID = "sortingHopper";
@@ -43,6 +36,7 @@ public class HopperTryMoveItemsMixin {
     @Inject(at = @At("TAIL"), method = "<init>")
     private void constuctor(BlockPos blockPos, BlockState blockState, CallbackInfo ci) {
         filteredItems = new HashSet<>();
+        filteredItems.add(Items.REDSTONE);
     }
 
     @Inject(cancellable = true, at = @At("HEAD"), method = "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;canPlaceItemInContainer(Lnet/minecraft/world/Container;Lnet/minecraft/world/item/ItemStack;ILnet/minecraft/core/Direction;)Z")
@@ -87,5 +81,16 @@ public class HopperTryMoveItemsMixin {
             itemList.add(tag);
         }
         compoundTag.put(MOD_ID, itemList);
+    }
+
+    @Override
+    public void setItems(Set<Item> items) {
+        filteredItems.clear();
+        filteredItems.addAll(items);
+    }
+
+    @Override
+    public Set<Item> getItems() {
+        return filteredItems;
     }
 }
