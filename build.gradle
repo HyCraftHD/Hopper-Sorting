@@ -20,7 +20,12 @@ repositories {
 
 loom {
     splitEnvironmentSourceSets()
-
+	runs {
+		server {
+			vmArgs "-Dmixin.debug.verbose=true"
+			vmArgs "-Dmixin.debug.export=true"
+		}
+	}
 	mods {
 		"hopper-sorting" {
 			sourceSet sourceSets.main
