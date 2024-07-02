@@ -21,12 +21,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class HopperSorting implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("hopper-sorting");
+
+    private static final int SORTING_INVENTORY_ROWS = 4;
+    private static final MenuType<?> SORTING_INVENTORY_MENU_TYPE = MenuType.GENERIC_9x4;
 
     @Override
     public void onInitialize() {
@@ -41,7 +43,6 @@ public class HopperSorting implements ModInitializer {
             if (world.getBlockState(pos).getBlock() != Blocks.HOPPER) {
                 return InteractionResult.PASS;
             }
-            System.out.println("Left click");
             openCustomInventory(player, pos);
 
             return InteractionResult.SUCCESS;
@@ -59,48 +60,37 @@ public class HopperSorting implements ModInitializer {
     }
 
     private void openCustomInventory(Player player, BlockPos pos) {
-
         player.openMenu(new SimpleMenuProvider((containerId, inventory, player1111) -> {
-
-            ChestMenu menu = new ChestMenu(MenuType.GENERIC_9x4, containerId, inventory, new SimpleContainer(4 * 9), 4) {
+            ChestMenu menu = new ChestMenu(SORTING_INVENTORY_MENU_TYPE, containerId, inventory, new SimpleContainer(SORTING_INVENTORY_ROWS * 9), SORTING_INVENTORY_ROWS) {
 
                 @Override
                 public void removed(Player player) {
-                    System.out.println("Inv close");
-
                     BlockEntity blockEntity = player.getCommandSenderWorld().getBlockEntity(pos);
-
                     if (blockEntity instanceof HopperBlockEntity hopper) {
                         var accessor = (HopperTryMoveItemsMixinAccessor) (Object) hopper;
-
                         Set<Item> items = new HashSet<>();
                         for (int i = 0; i < 36; i++) {
                             items.add(this.getSlot(i).getItem().getItem());
                         }
                         items.remove(Items.AIR);
-
                         accessor.setSortingHopperItems(items);
-
                         hopper.setChanged();
                     }
-
                     super.removed(player);
                 }
 
                 @Override
                 public void clicked(int slot, int button, ClickType clickType, Player player) {
-                    System.out.println("Slot: " + slot + " Button: " + button + " ClickType: " + clickType);
                     if (clickType != ClickType.PICKUP) {
                         return;
                     }
                     if (this.getSlot(slot).getItem().isEmpty()) {
                         return;
                     }
-                    if (slot >= 0 && slot <= 35) { //Oberes Inv
+                    if (slot >= 0 && slot < SORTING_INVENTORY_ROWS * 9) { //Oberes Inv
                         this.setItem(slot, containerId, Items.AIR.getDefaultInstance());
                     } else { //Unteres Inv
                         ItemStack item = this.getSlot(slot).getItem();
-
                         if (containsItem(item)) {
                             return;
                         }
@@ -110,13 +100,10 @@ public class HopperSorting implements ModInitializer {
                         }
                         this.setItem(nextSlot, containerId, item.getItem().getDefaultInstance());
                     }
-
-
-                    //super.clicked(slot, button, clickType, player);
                 }
 
                 private int nextFreeSlot() {
-                    for (int i = 0; i < 36; i++) {
+                    for (int i = 0; i < SORTING_INVENTORY_ROWS * 9; i++) {
                         if (this.getSlot(i).getItem().isEmpty()) {
                             return i;
                         }
@@ -125,7 +112,7 @@ public class HopperSorting implements ModInitializer {
                 }
 
                 private boolean containsItem(ItemStack item) {
-                    for (int i = 0; i < 36; i++) {
+                    for (int i = 0; i < SORTING_INVENTORY_ROWS * 9; i++) {
                         if (this.getSlot(i).getItem().getItem() == item.getItem()) {
                             return true;
                         }
@@ -135,18 +122,15 @@ public class HopperSorting implements ModInitializer {
             };
 
             BlockEntity blockEntity = player.getCommandSenderWorld().getBlockEntity(pos);
-            System.out.println("Inv open " + pos);
             if (blockEntity instanceof HopperBlockEntity hopper) {
                 var accessor = (HopperTryMoveItemsMixinAccessor) (Object) hopper;
-                System.out.println("Items: " + accessor.getSortingHopperItems());
                 int i = 0;
                 for (var item : accessor.getSortingHopperItems()) {
                     menu.setItem(i, containerId, item.getDefaultInstance());
                     i++;
                 }
             }
-
             return menu;
-        }, Component.literal("Title Screen")));
+        }, Component.literal("Whitelist Items")));
     }
 }

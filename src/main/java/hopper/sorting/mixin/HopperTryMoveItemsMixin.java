@@ -2,16 +2,13 @@ package hopper.sorting.mixin;
 
 import hopper.sorting.accessors.HopperTryMoveItemsMixinAccessor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
@@ -20,7 +17,6 @@ import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,12 +26,14 @@ public abstract class HopperTryMoveItemsMixin extends RandomizableContainerBlock
 
     @Unique
     private static final String MOD_ID = "sortingHopper";
+    @Unique
+    private static final String SORTING_ITEM_ID = "items";
     @Mutable
     @Unique
     @Final
     private Set<Item> filteredItems;
 
-    //Not used
+    //Not used, needed for RandomizableContainerBlockEntity
     private HopperTryMoveItemsMixin(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
     }
@@ -69,10 +67,9 @@ public abstract class HopperTryMoveItemsMixin extends RandomizableContainerBlock
     @Inject(at = @At("TAIL"), method = "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;loadAdditional(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/core/HolderLookup$Provider;)V")
     private void loadAdditional(CompoundTag compoundTag, HolderLookup.Provider provider, CallbackInfo ci) {
         ListTag itemList = compoundTag.getList(MOD_ID, ListTag.TAG_COMPOUND);
-        System.out.println(itemList + " | " + compoundTag);
         for (int i = 0; i < itemList.size(); i++) {
             CompoundTag tag = itemList.getCompound(i);
-            String key = tag.getString("item");
+            String key = tag.getString(SORTING_ITEM_ID);
             if(key.isEmpty()) {
                 continue;
             }
@@ -93,11 +90,10 @@ public abstract class HopperTryMoveItemsMixin extends RandomizableContainerBlock
         ListTag itemList = new ListTag();
         for(Item item : filteredItems) {
             CompoundTag tag = new CompoundTag();
-            tag.putString("item", BuiltInRegistries.ITEM.getKey(item).toString());
+            tag.putString(SORTING_ITEM_ID, BuiltInRegistries.ITEM.getKey(item).toString());
             itemList.add(tag);
         }
         compoundTag.put(MOD_ID, itemList);
-        System.out.println("SAVEEEEEEEEEEEEEEEEEEEEEEEEE" + compoundTag.toString());
     }
 
     @Override
