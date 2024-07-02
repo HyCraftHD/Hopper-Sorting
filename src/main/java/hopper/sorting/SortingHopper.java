@@ -1,11 +1,12 @@
-package hopper.sorting.accessors;
+package hopper.sorting;
 
 import net.minecraft.world.item.Item;
 
 import java.util.Set;
 
-public interface HopperTryMoveItemsMixinAccessor {
+public interface SortingHopper {
 
     void setSortingHopperItems(Set<Item> items);
+
     Set<Item> getSortingHopperItems();
 }

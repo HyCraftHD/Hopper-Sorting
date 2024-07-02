@@ -1,12 +1,13 @@
 package hopper.sorting;
 
-import hopper.sorting.accessors.HopperTryMoveItemsMixinAccessor;
 import net.fabricmc.api.ModInitializer;
-
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.*;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickType;
@@ -32,9 +33,10 @@ public class HopperSorting implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        LOGGER.info("Sorting hoppers loaded");
 
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
-            if(world.isClientSide) {
+            if (world.isClientSide) {
                 return InteractionResult.PASS;
             }
             if (player.getItemInHand(InteractionHand.MAIN_HAND).getItem() != Items.HOPPER) {
@@ -44,19 +46,8 @@ public class HopperSorting implements ModInitializer {
                 return InteractionResult.PASS;
             }
             openCustomInventory(player, pos);
-
             return InteractionResult.SUCCESS;
         });
-		/*
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			dispatcher.register(Commands.literal("opencustomgui").executes(context -> {
-				ServerPlayer player = context.getSource().getPlayer();
-				openCustomInventory(player);
-				return 1;
-			}));
-		});
-		*/
-
     }
 
     private void openCustomInventory(Player player, BlockPos pos) {
@@ -65,9 +56,9 @@ public class HopperSorting implements ModInitializer {
 
                 @Override
                 public void removed(Player player) {
-                    BlockEntity blockEntity = player.getCommandSenderWorld().getBlockEntity(pos);
+                    BlockEntity blockEntity = player.level().getBlockEntity(pos);
                     if (blockEntity instanceof HopperBlockEntity hopper) {
-                        var accessor = (HopperTryMoveItemsMixinAccessor) (Object) hopper;
+                        var accessor = (SortingHopper) hopper;
                         Set<Item> items = new HashSet<>();
                         for (int i = 0; i < 36; i++) {
                             items.add(this.getSlot(i).getItem().getItem());
@@ -121,9 +112,9 @@ public class HopperSorting implements ModInitializer {
                 }
             };
 
-            BlockEntity blockEntity = player.getCommandSenderWorld().getBlockEntity(pos);
+            BlockEntity blockEntity = player.level().getBlockEntity(pos);
             if (blockEntity instanceof HopperBlockEntity hopper) {
-                var accessor = (HopperTryMoveItemsMixinAccessor) (Object) hopper;
+                var accessor = (SortingHopper) hopper;
                 int i = 0;
                 for (var item : accessor.getSortingHopperItems()) {
                     menu.setItem(i, containerId, item.getDefaultInstance());

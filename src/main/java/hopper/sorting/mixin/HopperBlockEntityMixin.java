@@ -1,6 +1,6 @@
 package hopper.sorting.mixin;
 
-import hopper.sorting.accessors.HopperTryMoveItemsMixinAccessor;
+import hopper.sorting.SortingHopper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -13,7 +13,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,11 +25,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Mixin(HopperBlockEntity.class)
-public abstract class HopperTryMoveItemsMixin extends RandomizableContainerBlockEntity implements HopperTryMoveItemsMixinAccessor {
+public abstract class HopperBlockEntityMixin extends RandomizableContainerBlockEntity implements SortingHopper {
 
     @Unique
-    private static final String MOD_ID = "sortingHopper";
+    @Final
+    private static final String ITEM_LIST_KEY = "sortingHopperItems";
     @Unique
+    @Final
     private static final String SORTING_ITEM_ID = "items";
     @Mutable
     @Unique
@@ -34,7 +39,8 @@ public abstract class HopperTryMoveItemsMixin extends RandomizableContainerBlock
     private Set<Item> filteredItems;
 
     //Not used, needed for RandomizableContainerBlockEntity
-    private HopperTryMoveItemsMixin(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
+    @Deprecated
+    private HopperBlockEntityMixin(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
     }
 
@@ -43,57 +49,44 @@ public abstract class HopperTryMoveItemsMixin extends RandomizableContainerBlock
         filteredItems = new HashSet<>();
     }
 
-//    @Inject(cancellable = true, at = @At("HEAD"), method = "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;canPlaceItemInContainer(Lnet/minecraft/world/Container;Lnet/minecraft/world/item/ItemStack;ILnet/minecraft/core/Direction;)Z")
-//    private static void canPlaceItemInContainer(Container container, ItemStack itemStack, int i, Direction direction, CallbackInfoReturnable<Boolean> cir) {
-//        if(container instanceof HopperBlockEntity hopper) {
-//            //System.out.println("container = " + container + ", itemStack = " + itemStack + ", i = " + i + ", direction = " + direction + ", cir = " + cir + ", pos = " + hopper.getBlockPos());
-//            var mixin = (HopperTryMoveItemsMixin)(Object)hopper;
-//
-//            if(!mixin.filteredItems.isEmpty() && !mixin.filteredItems.contains(itemStack.getItem())) {
-//                cir.setReturnValue(false);
-//            }
-//        }
-//    }
-
     @Override
     public boolean canPlaceItem(int slot, ItemStack itemStack) {
-        var mixin = (HopperTryMoveItemsMixin)(Object)this;
-        if(!mixin.filteredItems.isEmpty() && !mixin.filteredItems.contains(itemStack.getItem())) {
+        if (!filteredItems.isEmpty() && !filteredItems.contains(itemStack.getItem())) {
             return false;
         }
         return super.canPlaceItem(slot, itemStack);
     }
 
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;loadAdditional(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/core/HolderLookup$Provider;)V")
+    @Inject(at = @At("TAIL"), method = "loadAdditional(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/core/HolderLookup$Provider;)V")
     private void loadAdditional(CompoundTag compoundTag, HolderLookup.Provider provider, CallbackInfo ci) {
-        ListTag itemList = compoundTag.getList(MOD_ID, ListTag.TAG_COMPOUND);
+        ListTag itemList = compoundTag.getList(ITEM_LIST_KEY, ListTag.TAG_COMPOUND);
         for (int i = 0; i < itemList.size(); i++) {
             CompoundTag tag = itemList.getCompound(i);
             String key = tag.getString(SORTING_ITEM_ID);
-            if(key.isEmpty()) {
+            if (key.isEmpty()) {
                 continue;
             }
             ResourceLocation resourceLocation = ResourceLocation.tryParse(key);
-            if(resourceLocation == null) {
+            if (resourceLocation == null) {
                 continue;
             }
-            var optional =  BuiltInRegistries.ITEM.getOptional(resourceLocation);
+            var optional = BuiltInRegistries.ITEM.getOptional(resourceLocation);
             optional.ifPresent(item -> filteredItems.add(item));
         }
     }
 
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;saveAdditional(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/core/HolderLookup$Provider;)V")
+    @Inject(at = @At("TAIL"), method = "saveAdditional(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/core/HolderLookup$Provider;)V")
     protected void saveAdditional(CompoundTag compoundTag, HolderLookup.Provider provider, CallbackInfo ci) {
-        if(filteredItems.isEmpty()) {
+        if (filteredItems.isEmpty()) {
             return;
         }
         ListTag itemList = new ListTag();
-        for(Item item : filteredItems) {
+        for (Item item : filteredItems) {
             CompoundTag tag = new CompoundTag();
             tag.putString(SORTING_ITEM_ID, BuiltInRegistries.ITEM.getKey(item).toString());
             itemList.add(tag);
         }
-        compoundTag.put(MOD_ID, itemList);
+        compoundTag.put(ITEM_LIST_KEY, itemList);
     }
 
     @Override
